@@ -326,6 +326,16 @@
 				</OutputClaims>
 			</ClaimsTransformation>
 
+			<ClaimsTransformation Id="AssertEmailMatchesOtpIdentifier" TransformationMethod="AssertStringClaimsAreEqual">
+				<InputClaims>
+					<InputClaim ClaimTypeReferenceId="email" TransformationClaimType="inputClaim1"/>
+					<InputClaim ClaimTypeReferenceId="otpIdentifier" TransformationClaimType="inputClaim2"/>
+				</InputClaims>
+				<InputParameters>
+					<InputParameter Id="stringComparison" DataType="string" Value="ordinalIgnoreCase" />
+				</InputParameters>
+			</ClaimsTransformation>
+
 
 			<ClaimsTransformation Id="ComparepwdLastUpdatedDtime" TransformationMethod="DateTimeComparison">
 				<InputClaims>
@@ -349,7 +359,7 @@
 					<InputClaim ClaimTypeReferenceId="policyname" DefaultValue="TWOSASignIn" AlwaysUseDefaultValue="true"/>
 				</InputClaims>
 				<DisplayClaims>
-					<DisplayClaim ClaimTypeReferenceId="email" />
+					<DisplayClaim ClaimTypeReferenceId="email" Required="true" />
 					
 					<DisplayClaim ClaimTypeReferenceId="verificationCode" ControlClaimType="VerificationCode" Required="true" />
 				</DisplayClaims>
@@ -369,6 +379,7 @@
 					<Action Id="VerifyCode">
             <ValidationClaimsExchange>
               <ValidationClaimsExchangeTechnicalProfile TechnicalProfileReferenceId="VerifyOTP"/>
+              <ValidationClaimsExchangeTechnicalProfile TechnicalProfileReferenceId="ValidateEmailMatchesOtpIdentifier"/>
             </ValidationClaimsExchange>
 					</Action>
 				</Actions>
@@ -397,6 +408,25 @@
           </OutputClaims>
           <OutputClaimsTransformations>
             <OutputClaimsTransformation ReferenceId="PrepareEmailForOTP_CT"/>
+          </OutputClaimsTransformations>
+          <UseTechnicalProfileForSessionManagement ReferenceId="SM-Noop" />
+        </TechnicalProfile>
+
+        <TechnicalProfile Id="ValidateEmailMatchesOtpIdentifier">
+          <DisplayName>Validate Email Matches OTP Identifier</DisplayName>
+          <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.ClaimsTransformationProtocolProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
+          <Metadata>
+            <Item Key="AllowGenerationOfClaimsWithNullValues">false</Item>
+          </Metadata>
+          <InputClaims>
+            <InputClaim ClaimTypeReferenceId="email" />
+            <InputClaim ClaimTypeReferenceId="otpIdentifier" />
+          </InputClaims>
+          <OutputClaims>
+            <OutputClaim ClaimTypeReferenceId="email"/>
+          </OutputClaims>
+          <OutputClaimsTransformations>
+            <OutputClaimsTransformation ReferenceId="AssertEmailMatchesOtpIdentifier"/>
           </OutputClaimsTransformations>
           <UseTechnicalProfileForSessionManagement ReferenceId="SM-Noop" />
         </TechnicalProfile>
