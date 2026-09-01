@@ -3,6 +3,7 @@ using Azure.Messaging.ServiceBus;
 using Common;
 using Common.Entities;
 using Common.ServiceBus;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Azure;
@@ -11,6 +12,7 @@ using WebApp1.BLL;
 
 namespace WebApp1.Pages
 {
+    [Authorize(Policy = "UserManagement")]
     public class UserModel : PageModel
     {
 
@@ -69,11 +71,20 @@ namespace WebApp1.Pages
             return Page();
         }
 
-        public async Task<IActionResult> OnGetMarkDisabled(string objectId)
+        public async Task<IActionResult> OnPostMarkDisabled(string objectId)
         {
             var result = new HttpResponseMessage();
 
-            Guard.Against.NullOrEmpty(objectId, nameof(objectId), $"Username must be provided");
+            Guard.Against.NullOrEmpty(objectId, nameof(objectId), $"ObjectId must be provided");
+
+            // Verify the user has the required role for user management operations
+            if (!User.IsInRole("Users.Manage"))
+            {
+                _logger.LogWarning(EventCodes.WebApp1.UI.Errors.UI_WEBAPP1_USER_TOOL_ACCOUNT_MARKED_AS_DISABLED_FAILED, 
+                    "Unauthorized attempt to disable user by objectId: {objectId} by user: {user}", 
+                    objectId, User.Identity?.Name);
+                return new ForbidResult();
+            }
 
             var request = new UpdateUserRequest()
             {

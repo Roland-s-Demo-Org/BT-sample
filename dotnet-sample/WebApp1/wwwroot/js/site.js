@@ -7,18 +7,27 @@ function markDisabled(objectId) {
 
     $('#markDisabled').prop('disabled', true);
 
-    invokeMark("/bob?handler=Markdisabled&objectId=" + objectId + "", markDisabledSuccess, markDisabledUnauthorized, markDisabledForbidden, markDisabledUnhandledException);
+    invokeMark("/User?handler=MarkDisabled", objectId, markDisabledSuccess, markDisabledUnauthorized, markDisabledForbidden, markDisabledUnhandledException);
 
 }
 
-function invokeMark(endpoint, successFunction, unauthorizedFunction, forbiddenFunction, unhandledError) {
+function invokeMark(endpoint, objectId, successFunction, unauthorizedFunction, forbiddenFunction, unhandledError) {
 
-    $.get(endpoint)
-        .done(function () {
+    // Get the anti-forgery token from the page
+    var token = $('input[name="__RequestVerificationToken"]').val();
+
+    $.ajax({
+        url: endpoint,
+        type: 'POST',
+        data: {
+            objectId: objectId,
+            __RequestVerificationToken: token
+        },
+        success: function () {
             // Handle the successful response data here
             setTimeout(successFunction, 1000);
-        })
-        .fail(function (jqXHR) {
+        },
+        error: function (jqXHR) {
             // Handle different types of errors
             switch (jqXHR.status) {
                 case 401:
@@ -31,7 +40,8 @@ function invokeMark(endpoint, successFunction, unauthorizedFunction, forbiddenFu
                     setTimeout(unhandledError, 1000);
                     break;
             }
-        });
+        }
+    });
 
 }
 
