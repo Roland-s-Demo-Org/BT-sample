@@ -904,7 +904,7 @@
           <ValidationTechnicalProfiles>
             <ValidationTechnicalProfile ReferenceId="AAD-UserReadUsingEmailAddress" />
           </ValidationTechnicalProfiles>
-          <IncludeTechnicalProfile ReferenceId="MFA-base" />
+          <IncludeTechnicalProfile ReferenceId="MFA-PasswordReset" />
         </TechnicalProfile>
 
         <TechnicalProfile Id="ForgotPassword">
