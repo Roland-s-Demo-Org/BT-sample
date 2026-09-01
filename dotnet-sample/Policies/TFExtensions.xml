@@ -263,6 +263,15 @@
 				</OutputClaims>
 			</ClaimsTransformation>
 
+			<ClaimsTransformation Id="CreateMfaAuthenticationMethodClaim" TransformationMethod="CreateStringClaim">
+				<InputParameters>
+					<InputParameter Id="value" DataType="string" Value="PhoneFactor" />
+				</InputParameters>
+				<OutputClaims>
+					<OutputClaim ClaimTypeReferenceId="AuthenticationMethodUsed" TransformationClaimType="createdClaim" />
+				</OutputClaims>
+			</ClaimsTransformation>
+
 			<ClaimsTransformation Id="IsMfaRegisteredCT" TransformationMethod="DoesClaimExist">
 				<InputClaims>
 					<InputClaim ClaimTypeReferenceId="strongAuthenticationPhoneNumber" TransformationClaimType="inputClaim" />
@@ -431,6 +440,20 @@
           <OutputClaims>
             <OutputClaim ClaimTypeReferenceId="journeyBehaviour" />
           </OutputClaims>
+          <UseTechnicalProfileForSessionManagement ReferenceId="SM-Noop" />
+        </TechnicalProfile>
+
+        <TechnicalProfile Id="RecordMfaAuthenticationMethod">
+          <DisplayName>Record MFA Authentication Method</DisplayName>
+          <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.ClaimsTransformationProtocolProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
+          <OutputClaims>
+            <OutputClaim ClaimTypeReferenceId="AuthenticationMethodUsed" />
+            <OutputClaim ClaimTypeReferenceId="AuthenticationMethodsUsed" />
+          </OutputClaims>
+          <OutputClaimsTransformations>
+            <OutputClaimsTransformation ReferenceId="CreateMfaAuthenticationMethodClaim" />
+            <OutputClaimsTransformation ReferenceId="AddToAuthenticationMethodsUsed" />
+          </OutputClaimsTransformations>
           <UseTechnicalProfileForSessionManagement ReferenceId="SM-Noop" />
         </TechnicalProfile>
 
@@ -1405,7 +1428,7 @@
 				</OrchestrationStep>
 
 				<!-- Conditional access block user -->
-				<OrchestrationStep Order="4" Type="InvokeSubJourney">
+				<OrchestrationStep Order="2" Type="InvokeSubJourney">
 					<Preconditions>
 						<Precondition Type="ClaimsExist" ExecuteActionsIf="false">
 							<Value>CAChallengeIsBlock</Value>
@@ -1422,8 +1445,50 @@
 					</JourneyList>
 				</OrchestrationStep>
 
-				<!-- Conditional access remediation -->
+				<!-- Conditional access MFA challenge verification -->
+				<OrchestrationStep Order="3" Type="InvokeSubJourney">
+					<Preconditions>
+						<Precondition Type="ClaimsExist" ExecuteActionsIf="false">
+							<Value>CAChallengeIsMfa</Value>
+							<Action>SkipThisOrchestrationStep</Action>
+						</Precondition>
+						<Precondition Type="ClaimEquals" ExecuteActionsIf="true">
+							<Value>CAChallengeIsMfa</Value>
+							<Value>False</Value>
+							<Action>SkipThisOrchestrationStep</Action>
+						</Precondition>
+					</Preconditions>
+					<JourneyList>
+						<Candidate SubJourneyReferenceId="ConditionalAccessMfaVerification" />
+					</JourneyList>
+				</OrchestrationStep>
+
+				<!-- Conditional access password change challenge -->
+				<OrchestrationStep Order="4" Type="InvokeSubJourney">
+					<Preconditions>
+						<Precondition Type="ClaimsExist" ExecuteActionsIf="false">
+							<Value>CAChallengeIsChgPwd</Value>
+							<Action>SkipThisOrchestrationStep</Action>
+						</Precondition>
+						<Precondition Type="ClaimEquals" ExecuteActionsIf="true">
+							<Value>CAChallengeIsChgPwd</Value>
+							<Value>False</Value>
+							<Action>SkipThisOrchestrationStep</Action>
+						</Precondition>
+					</Preconditions>
+					<JourneyList>
+						<Candidate SubJourneyReferenceId="ConditionalAccessPasswordChange" />
+					</JourneyList>
+				</OrchestrationStep>
+
+				<!-- Conditional access remediation - only after challenges are satisfied -->
 				<OrchestrationStep Order="5" Type="InvokeSubJourney">
+					<Preconditions>
+						<Precondition Type="ClaimsExist" ExecuteActionsIf="false">
+							<Value>conditionalAccessClaimCollection</Value>
+							<Action>SkipThisOrchestrationStep</Action>
+						</Precondition>
+					</Preconditions>
 					<JourneyList>
 						<Candidate SubJourneyReferenceId="ConditionalAccess_Remediation" />
 					</JourneyList>
@@ -1489,6 +1554,53 @@
 				</OrchestrationStep>
 			</OrchestrationSteps>
 		</SubJourney>
+
+	<SubJourney Id="ConditionalAccessMfaVerification" Type="Call">
+		<OrchestrationSteps>
+			<!-- Perform MFA verification using PhoneFactor -->
+			<OrchestrationStep Order="1" Type="ClaimsExchange">
+				<Preconditions>
+					<Precondition Type="ClaimsExist" ExecuteActionsIf="false">
+						<Value>strongAuthenticationPhoneNumber</Value>
+						<Action>SkipThisOrchestrationStep</Action>
+					</Precondition>
+				</Preconditions>
+				<ClaimsExchanges>
+					<ClaimsExchange Id="PhoneFactorVerify" TechnicalProfileReferenceId="PhoneFactor-VerifySMSOnly"/>
+				</ClaimsExchanges>
+			</OrchestrationStep>
+			<!-- If no phone number registered, require enrollment -->
+			<OrchestrationStep Order="2" Type="ClaimsExchange">
+				<Preconditions>
+					<Precondition Type="ClaimsExist" ExecuteActionsIf="true">
+						<Value>strongAuthenticationPhoneNumber</Value>
+						<Action>SkipThisOrchestrationStep</Action>
+					</Precondition>
+				</Preconditions>
+				<ClaimsExchanges>
+					<ClaimsExchange Id="PhoneFactorEnroll" TechnicalProfileReferenceId="PhoneFactor-InputOrVerifySMSOnly"/>
+				</ClaimsExchanges>
+			</OrchestrationStep>
+			<!-- Record MFA authentication method -->
+			<OrchestrationStep Order="3" Type="ClaimsExchange">
+				<ClaimsExchanges>
+					<ClaimsExchange Id="RecordMfaMethod" TechnicalProfileReferenceId="RecordMfaAuthenticationMethod"/>
+				</ClaimsExchanges>
+			</OrchestrationStep>
+		</OrchestrationSteps>
+	</SubJourney>
+
+	<SubJourney Id="ConditionalAccessPasswordChange" Type="Call">
+		<OrchestrationSteps>
+			<!-- Force password change -->
+			<OrchestrationStep Order="1" Type="ClaimsExchange">
+				<ClaimsExchanges>
+					<ClaimsExchange Id="ForcePasswordChange" TechnicalProfileReferenceId="LocalAccountWritePasswordUsingObjectId-Custom"/>
+				</ClaimsExchanges>
+			</OrchestrationStep>
+		</OrchestrationSteps>
+	</SubJourney>
+
 
     <SubJourney Id="ReadUserProfile" Type="Call">
       <OrchestrationSteps>
