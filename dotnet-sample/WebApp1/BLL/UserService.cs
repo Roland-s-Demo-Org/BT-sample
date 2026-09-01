@@ -84,6 +84,15 @@ namespace WebApp1.BLL
         {
             _logger.LogTrace(EventCodes.Users.Trace.USERS_UPDATEUSERPATCHREQUEST, "Updating user Account with objectId: {objectId}.", objectId);
 
+            // Authorization check: Verify the caller has the required role for user management
+            if (httpContext?.User?.IsInRole("Users.Manage") != true)
+            {
+                _logger.LogWarning(EventCodes.Users.Errors.USERS_UPDATEUSERPATCHFAILED, 
+                    "Unauthorized attempt to update user with objectId: {objectId}. User: {user}", 
+                    objectId, httpContext?.User?.Identity?.Name);
+                return new ForbidResult();
+            }
+
             var correlationId = Guid.Parse(updateUserRequest.CorrelationId);
 
             var AppClientId = Guid.Empty;

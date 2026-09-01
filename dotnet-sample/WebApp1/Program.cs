@@ -77,6 +77,13 @@ builder.Services.AddAuthorization(options =>
 {
     // By default, all incoming requests will be authorized according to the default policy.
     options.FallbackPolicy = options.DefaultPolicy;
+    
+    // Policy for user management operations requiring elevated privileges
+    options.AddPolicy("UserManagement", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireRole("Users.Manage");
+    });
 });
 
 // Add services to the container.
