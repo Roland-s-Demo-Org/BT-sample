@@ -14,7 +14,6 @@ namespace API.Controllers
     [ApiVersion("1.0")]
     [Route("/v{version:apiVersion}/[controller]")]
     [Route("[controller]")]
-    [AllowAnonymous]
     [ApiController]
     public class UserController : ControllerBase
     {
