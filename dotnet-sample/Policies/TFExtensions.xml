@@ -341,6 +341,16 @@
 				</OutputClaims>
 			</ClaimsTransformation>
 
+			<ClaimsTransformation Id="AssertPhoneVerifiedCT" TransformationMethod="AssertStringClaimsAreEqual">
+				<InputClaims>
+					<InputClaim ClaimTypeReferenceId="strongAuthenticationPhoneNumber" TransformationClaimType="inputClaim1" />
+					<InputClaim ClaimTypeReferenceId="Verified.strongAuthenticationPhoneNumber" TransformationClaimType="inputClaim2" />
+				</InputClaims>
+				<InputParameters>
+					<InputParameter Id="stringComparison" DataType="string" Value="ordinalIgnoreCase" />
+				</InputParameters>
+			</ClaimsTransformation>
+
 		</ClaimsTransformations>
 
 		<DisplayControls>
@@ -431,6 +441,26 @@
           <OutputClaims>
             <OutputClaim ClaimTypeReferenceId="journeyBehaviour" />
           </OutputClaims>
+          <UseTechnicalProfileForSessionManagement ReferenceId="SM-Noop" />
+        </TechnicalProfile>
+
+        <TechnicalProfile Id="AssertPhoneVerifiedForPasswordReset">
+          <DisplayName>Assert phone verification for password reset</DisplayName>
+          <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.ClaimsTransformationProtocolProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
+          <Metadata>
+            <Item Key="IncludeClaimResolvingInClaimsHandling">true</Item>
+          </Metadata>
+          <InputClaims>
+            <InputClaim ClaimTypeReferenceId="strongAuthenticationPhoneNumber" />
+            <InputClaim ClaimTypeReferenceId="Verified.strongAuthenticationPhoneNumber" />
+          </InputClaims>
+          <OutputClaims>
+            <OutputClaim ClaimTypeReferenceId="strongAuthenticationPhoneNumber" />
+            <OutputClaim ClaimTypeReferenceId="Verified.strongAuthenticationPhoneNumber" />
+          </OutputClaims>
+          <OutputClaimsTransformations>
+            <OutputClaimsTransformation ReferenceId="AssertPhoneVerifiedCT" />
+          </OutputClaimsTransformations>
           <UseTechnicalProfileForSessionManagement ReferenceId="SM-Noop" />
         </TechnicalProfile>
 
@@ -1184,15 +1214,15 @@
           </CryptographicKeys>
           <InputClaims>
             <InputClaim ClaimTypeReferenceId="objectId" />
-
+            <InputClaim ClaimTypeReferenceId="strongAuthenticationPhoneNumber" />
             <InputClaim ClaimTypeReferenceId="Verified.strongAuthenticationPhoneNumber" />
-
           </InputClaims>
           <OutputClaims>
             <OutputClaim ClaimTypeReferenceId="newPassword" Required="true" />
           </OutputClaims>
           <ValidationTechnicalProfiles>
             <ValidationTechnicalProfile ReferenceId="AAD-UserWritePasswordUsingObjectId" />
+            <ValidationTechnicalProfile ReferenceId="AssertPhoneVerifiedForPasswordReset" />
           </ValidationTechnicalProfiles>
         </TechnicalProfile>
 

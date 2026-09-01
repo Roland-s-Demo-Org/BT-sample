@@ -238,8 +238,21 @@
           </ClaimsExchanges>
         </OrchestrationStep>
 
-        <!-- Collect and persist a new password. -->
+        <!-- Verify phone MFA if enrolled. -->
         <OrchestrationStep Order="2" Type="ClaimsExchange">
+          <Preconditions>
+            <Precondition Type="ClaimsExist" ExecuteActionsIf="false">
+              <Value>strongAuthenticationPhoneNumber</Value>
+              <Action>SkipThisOrchestrationStep</Action>
+            </Precondition>
+          </Preconditions>
+          <ClaimsExchanges>
+            <ClaimsExchange Id="PhoneVerificationExchange" TechnicalProfileReferenceId="PhoneFactor-VerifySMSOnly" />
+          </ClaimsExchanges>
+        </OrchestrationStep>
+
+        <!-- Collect and persist a new password. -->
+        <OrchestrationStep Order="3" Type="ClaimsExchange">
           <ClaimsExchanges>
             <ClaimsExchange Id="NewCredentials" TechnicalProfileReferenceId="LocalAccountWritePasswordUsingObjectId-Custom" />
           </ClaimsExchanges>
