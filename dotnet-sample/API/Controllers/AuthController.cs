@@ -47,7 +47,7 @@ namespace API.Controllers
                     return BuildConflict("Unexpected Exception calling the Authentication API", ex.Message, content.CorrelationId.ToString());
             }
 
-            if (result.IsValid || (!string.IsNullOrEmpty(result.Code) && result.Code.ToUpper().Equals("VC-800")))
+            if (result.IsValid)
             {
                 _logger.LogInformation(EventCodes.AuthCheck.Trace.VALIDATECREDENTIALS_NEWREQUEST_SUCCESS, "Validate Credentials Success");
 
